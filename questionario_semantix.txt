@@ -1,0 +1,41 @@
+Questionário - Desafio Semantix Data Engineer
+Bruno Laget Merino
+brunolagetm@hotmail.de
+
+Qual o objetivo do comando cache em Spark?
+Persistir um RDD para que este possa ser acessado diversas vezes sem ser calculado novamente. Utiliza-se o recurso de caching sempre que se saiba que um dado RDD precisa ser reutilizado, ou para acelerar a recuperação de um processo mais pesado em caso de falha de execução.
+
+O mesmo código implementado em Spark é normalmente mais rápido que a implementação equivalente em MapReduce. Por quê?
+Porque o spark realiza o processamento em memória sempre que possível (persistindo os dados em memória enquanto o mapreduce persiste os dados em disco, além de possuir um fator de replicação que repete as escritas); com isso, o Spark evita operações de escrita/leitura em disco desnecessárias e portanto reduz drasticamente o tempo de processamento necessário. 
+
+Qual é a função do SparkContext?
+O SparkContext é o ponto de entrada para o engine de execução do spark, servindo para configurar e criar uma instância Spark, acessar configurações e serviços, criar RDDs e acumuladores, e executar jobs. 
+
+Explique com suas palavras o que é Resilient Distributed Datasets (RDD).
+ - É a estrutura de dados utilizada pelo Spark: é imutável, ou seja, cada transformação no dataset gera um novo RDD - o que não apenas torna a estrutura resiliente e tolerante a falhas, mas memoriza cada transformação e permite reconstruir uma etapa anterior se necessário, além de utilizar a estrutura de forma iterativa (por exemplo em aplicações de machine learning); o RDD é distribuído ao longo do cluster para permitir computação paralela; é lazy evaluated, ou seja, as transformações são memorizadas e só são executadas de fato quando uma ação é chamada, permitindo programas mais rápidos e eficientes; e é in-memory, aumentando a velocidade de processamento, embora permita gravar em disco o volume que exceda a memória disponível.
+
+GroupByKey é menos eficiente que reduceByKey em grandes datasets. Por quê?
+ - A operação groupByKey distribui todo o conjunto de dados para os worker nodes, onde são então agregados por chave; já a reduceByKey agrega cada chave dentro de cada partição antes de distribuir para os worker nodes, distribuindo apenas um output para cada chave (reduzindo, assim, drasticamente o fluxo de dados na rede e otimizando o processamento).
+
+Explique o que o código Scala abaixo faz.
+
+val textFile = sc.textFile("hdfs://...")
+val counts = textFile.flatMap(line => line.split(" "))
+.map(word => (word, 1))
+.reduceByKey(_ + _)
+counts.saveAsTextFile("hdfs://...")
+
+O código efetua uma contagem de cada palavra de um arquivo de texto do hdfs; cada etapa do código foi comentada para mais detalhes:
+
+//importa um arquivo de texto armazenado em hdfs e atribui à variável textFile:
+val textFile = sc.textFile("hdfs://...")
+//separa o texto por espaço, gerando uma lista de palavras, e atribui essa lista à variável counts:
+val counts = textFile.flatMap(line => line.split(" "))
+//cada palavra vira uma chave de um par chave-valor de valor 1 (para efetuar a contagem):
+.map(word => (word, 1))
+//organiza as chaves iguais nos mesmos blocos para melhorar a performance da query, e em seguida efetua as contagens de cada chave única:
+.reduceByKey(_ + _)
+//salva o resultado da query como um arquivo de texto no hdfs:
+counts.saveAsTextFile("hdfs://...")
+
+
